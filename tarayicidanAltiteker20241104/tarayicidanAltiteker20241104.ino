@@ -4,7 +4,7 @@
 *********/
 #include <WiFi.h>
 #include <ESP32Servo.h>
-
+#include <cmath>
 
 // Define servos for steering and locomotion
 Servo steeringServos[6];
@@ -13,14 +13,19 @@ Servo locomotionServos[6];
 // Define servo pins % this pins are for D0 to D12 on arduino 3 1 26 25 17 16 27 14 12 13 5 23 19 18
 int locomotionPins[6] = { 26, 17, 14, 13, 5, 19 };
 int steeringPins[6] = { 25, 16, 27, 12, 23, 18 };
-int steeringPWMOffsets[6] = { 90, 100, 91, 96, 109, 101};
-int locomotionPWMOffsetsLow[6] = { 89, 87, 89, 89, 87, 89};
-int locomotionPWMOffsetsHigh[6] = { 99, 97, 99, 99, 97, 99};
-int steerPWMs[6] = { 0, 0, 0, 0, 0, 0};
-int locoPWMs[6] = { 0, 0, 0, 0, 0, 0};
-float oldSteerPWMs[6] = { 0, 0, 0, 0, 0, 0};
-float oldLocoPWMs[6] = { 0, 0, 0, 0, 0, 0};
-float ratio = 0.2;
+int steeringPWMOffsets[6] = { 90, 100, 91, 96, 109, 101 };
+int locomotionPWMOffsetsLow[6] = { 89, 87, 89, 89, 87, 89 };
+int locomotionPWMOffsetsHigh[6] = { 99, 97, 99, 99, 97, 99 };
+int steerPWMs[6] = { 0, 0, 0, 0, 0, 0 };
+int locoPWMs[6] = { 0, 0, 0, 0, 0, 0 };
+float oldSteerPWMs[6] = { 0, 0, 0, 0, 0, 0 };
+float oldLocoPWMs[6] = { 0, 0, 0, 0, 0, 0 };
+float ratio = 0.05;
+
+
+
+float r[] = { 1000, 0 };
+float v = 0;
 
 // Previous time for servo update
 unsigned long lastServoUpdateTime = 0;
@@ -126,15 +131,15 @@ void loop() {
             client.println("</head><body><h1>Gezegen Gezgini Robot</h1>");
 
             //İlk kayıcı dönüş için
-            client.println("<p>YON: <span id=\"turnPWM\"></span></p>");
-            client.println("<input type=\"range\" min=\"-120\" max=\"120\" class=\"slider\" id=\"servoSlider\" onchange=\"servo(this.value)\" value=\"" + valueString + "\"/>");
+            client.println("<p>DONUS YARICAPI [cm]: <span id=\"turnPWM\"></span></p>");
+            client.println("<input type=\"range\" min=\"-100\" max=\"100\" class=\"slider\" id=\"servoSlider\" onchange=\"servo(this.value)\" value=\"" + valueString + "\"/>");
 
 
             //2.  kayıcı ileri hız için
-            client.println("<p>HIZ: <span id=\"movePWM\"></span></p>");
-            client.println("<input type=\"range\" min=\"-120\" max=\"120\" class=\"slider\" id=\"moveSlider\" onchange=\"servo(parseInt(this.value) + Number(400))\" value=\"" + valueString + "\"/>");
+            client.println("<p>HIZ [cm/s]:  <span id=\"movePWM\"></span></p>");
+            client.println("<input type=\"range\" min=\"-20\" max=\"20\" class=\"slider\" id=\"moveSlider\" onchange=\"servo(parseInt(this.value) + Number(400))\" value=\"" + valueString + "\"/>");
 
-            
+
             //3.  kayıcı oran için
             client.println("<p>ORAN: <span id=\"oran\"></span></p>");
             client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"oranKayici\" onchange=\"servo(parseInt(this.value) + Number(800))\" value=\"" + valueString + "\"/>");
@@ -164,11 +169,15 @@ void loop() {
               //Rotate the servo
               int myval = valueString.toInt();
               if (myval < 200) {
-                RobotTurn(myval);
-              }else if (myval > 600) {
-                ratio=((float)myval-800.0)/100.0;
-              }              else {
-                RobotMove(myval - 400);
+
+                r[0] = myval;
+
+                ;
+              } else if (myval > 600) {
+
+              } else {
+
+                v = myval - 400;
               }
 
 
@@ -197,16 +206,56 @@ void loop() {
 }
 
 
-void RobotTurn(int PWM) { // Function to make a right turn
+
+
+
+
+
+
+
+float teker_hiz_bul(float r[], float T[], float v) {
+  float beta = v * sqrt((pow((r[0] - T[0]), 2) + pow((r[1] - T[1]), 2)) / (pow(r[0], 2) + pow(r[1], 2)));
+
+  return beta;
+}
+
+
+float teker_aci_bul(float r[], float T[], float v) {
+  float theta = -90 + atan2(r[0] - T[0], r[1] - T[1]) * 180.0 / 3.14;
+
+  if (theta > 90.0) {
+    theta = theta - 180.0;
+  } else if (theta < -90.0) {
+
+    theta = theta + 180.0;
+  }
+  return theta;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void RobotTurn(float aci_deg) {  // Function to make a right turn
+
+
+  int PWM = (int)aci_deg;
   Serial.print("Turn:");
   Serial.println(PWM);
   // Adjust steering servos to turn right
   for (int i = 0; i < 2; i++) {  // First three wheels (front half)
 
-    int  servoPWM = max(0, min(PWM + steeringPWMOffsets[i], 255));
+    int servoPWM = max(0, min(PWM + steeringPWMOffsets[i], 255));
 
     steerPWMs[i] = servoPWM;
-
   }
   for (int i = 4; i < 6; i++) {  // Last three wheels (back half)
     int servoPWM = max(0, min(-PWM + steeringPWMOffsets[i], 255));
@@ -217,7 +266,11 @@ void RobotTurn(int PWM) { // Function to make a right turn
 
 
 
-void RobotMove(int PWM) {
+void RobotMove(float hiz_m_s) {
+
+  int PWM = (int)(hiz_cm_s * 4.0 * 100);
+
+
   Serial.print("Move:");
   Serial.println(PWM);
 
@@ -230,54 +283,67 @@ void RobotMove(int PWM) {
   for (int i = 1; i < 6; i = i + 2) {
     locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   }
-// Birinci motor istisna
-  //int i = 0; 
-    //locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
-  
-
-  
+  // Birinci motor istisna
+  //int i = 0;
+  //locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
 }
 
 
 void updateServos() {
 
 
-if(millis() - lastServoUpdateTime  > 10)
-{
+  if (millis() - lastServoUpdateTime > 10) {
 
-    lastServoUpdateTime  = millis();
+    lastServoUpdateTime = millis();
 
-    
-  
-  //Serial.print("Update: ");
 
-  
-  for (int i = 0; i < 6; i++) {
-    
-    // Steer
-    oldSteerPWMs[i] = (1 - ratio) * oldSteerPWMs[i] + ratio * steerPWMs[i];
-    steeringServos[i].write((int)oldSteerPWMs[i]);
 
-    
-  //Serial.print((int)oldSteerPWMs[i]);
-  
-  //Serial.print(" ");
-  
-    // Loco
-    oldLocoPWMs[i] = (1.0 - ratio) * oldLocoPWMs[i] + ratio * locoPWMs[i];
-    if (oldLocoPWMs[i] < locomotionPWMOffsetsHigh[i] && oldLocoPWMs[i] > locomotionPWMOffsetsLow[i])
-    { locomotionServos[i].write((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2); 
-  //Serial.print(" G ");
-    } else {
-      locomotionServos[i].write((int)oldLocoPWMs[i]);
-      
-  //Serial.print((int)oldLocoPWMs[i]);
-  
-  //Serial.print(" ");
+
+
+
+    for (int i = 0; i < 6; i++) {
+      float T[2] = { teker_konumlari[i][0], teker_konumlari[i][1] };
+
+      float teker_hizi = teker_hiz_bul(r, T, v);
+      float teker_acisi = teker_aci_bul(r, T, v);
+
+      Serial.print("\n%d teker icin, T=[%.0f,%.0f], Teker Acisi: %.0f, Teker Hizi: %.0f", i, T[0], T[1], teker_acisi, teker_hizi);
+
+      // teker aci e hizleri pwm donustur
+
+      RobotTurn(teker_acisi);
+      RobotMove(teker_hizi);
     }
+
+
+
+
+    // Servoya PWM degerlerini ata
+    for (int i = 0; i < 6; i++) {
+
+      // Steer
+      oldSteerPWMs[i] = (1 - ratio) * oldSteerPWMs[i] + ratio * steerPWMs[i];
+      steeringServos[i].write((int)oldSteerPWMs[i]);
+
+
+      //Serial.print((int)oldSteerPWMs[i]);
+
+      //Serial.print(" ");
+
+      // Loco
+      oldLocoPWMs[i] = (1.0 - ratio) * oldLocoPWMs[i] + ratio * locoPWMs[i];
+      if (oldLocoPWMs[i] < locomotionPWMOffsetsHigh[i] && oldLocoPWMs[i] > locomotionPWMOffsetsLow[i]) {
+        locomotionServos[i].write((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2);
+        //Serial.print(" G ");
+      } else {
+        locomotionServos[i].write((int)oldLocoPWMs[i]);
+
+        //Serial.print((int)oldLocoPWMs[i]);
+
+        //Serial.print(" ");
+      }
+    }
+
+    //Serial.println(".");
   }
-
-  //Serial.println(".");
-
-}
 }
