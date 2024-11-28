@@ -114,45 +114,34 @@ float teker_aci_bul(float r[], float T[], float v)
   return theta;
 }
 
-void RobotTurn(float aci_deg)
+void RobotTurn(float aci_deg, int i)
 { // Function to make a right turn
 
   int PWM = (int)aci_deg;
   Serial.print(" Turn:");
   Serial.print(PWM);
   // Adjust steering servos to turn right
-  for (int i = 0; i < 2; i++)
-  { // First three wheels (front half)
+   // First three wheels (front half)
 
     int servoPWM = max(0, min(PWM + steeringPWMOffsets[i], 255));
 
     steerPWMs[i] = servoPWM;
-  }
-  for (int i = 4; i < 6; i++)
-  { // Last three wheels (back half)
-    int servoPWM = max(0, min(-PWM + steeringPWMOffsets[i], 255));
-
-    steerPWMs[i] = servoPWM;
-  }
+ 
 }
 
-void RobotMove(float hiz_m_s)
+void RobotMove(float hiz_m_s, int i)
 {
 
-  int PWM = (int)(hiz_m_s * 4.0 * 100);
+  int PWM = (int)(hiz_m_s * 50 / 20 * 100);
 
   Serial.print(" Move:");
   Serial.print(PWM);
 
   // left half motors
-  for (int i = 0; i < 6; i = i + 2)
+  if  (i%2 == 0)
   {
     locoPWMs[i] = -PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
-  }
-
-  // right half motors
-  for (int i = 1; i < 6; i = i + 2)
-  {
+  }else  {
     locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   }
   // Birinci motor istisna
@@ -160,10 +149,10 @@ void RobotMove(float hiz_m_s)
   // locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
 }
 
-void updateServos()
+void updateServos(int period_ms)
 {
 
-  if (millis() - lastServoUpdateTime > 1000)
+  if (millis() - lastServoUpdateTime > period_ms)
   {
 
     lastServoUpdateTime = millis();
@@ -175,12 +164,12 @@ void updateServos()
       float teker_hizi = teker_hiz_bul(r, T, v);
       float teker_acisi = teker_aci_bul(r, T, v);
 
-      Serial.printf("\n%d teker icin, T=[%.0f,%.0f], Teker Acisi: %.0f, Teker Hizi: %.0f", i, T[0], T[1], teker_acisi, teker_hizi);
+      Serial.printf("\n%d.Teker=[%.0f,%.0f], Aci: %.0fder, Hiz: %.0f cm/s", i, T[0], T[1], teker_acisi, teker_hizi*100);
 
       // teker aci e hizleri pwm donustur
 
-      RobotTurn(teker_acisi);
-      RobotMove(teker_hizi);
+      RobotTurn(teker_acisi,i);
+      RobotMove(teker_hizi,i);
     }
 
     // Servoya PWM degerlerini ata
@@ -225,7 +214,7 @@ void updateServos()
 
 void loop()
 {
-  updateServos();
+  updateServos(100);
   WiFiClient client = server.available(); // Listen for incoming clients
 
   if (client)
@@ -304,7 +293,7 @@ void loop()
               if (myval < 200)
               {
 
-                r[0] = myval;
+                r[0] = myval/100.0;
 
                 ;
               }
