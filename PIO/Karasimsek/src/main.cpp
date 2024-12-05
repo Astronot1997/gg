@@ -138,15 +138,15 @@ void RobotMove(float hiz_m_s, int i)
   Serial.print(PWM);
 
   // left half motors
-  if  (i%2 == 0)
+  if  (i%2 == 0 && i!=0)
   {
     locoPWMs[i] = -PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   }else  {
     locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   }
   // Birinci motor istisna
-  // int i = 0;
-  // locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
+   //int i = 0;
+  //locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
 }
 
 void updateServos(int period_ms)
