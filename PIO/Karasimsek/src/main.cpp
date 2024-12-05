@@ -1,8 +1,4 @@
 #include <Arduino.h>
-/*********
-  Rui Santos & Sara Santos - Random Nerd Tutorials
-  Complete project details at https://RandomNerdTutorials.com/esp32-servo-motor-web-server-arduino-ide/
-*********/
 #include <WiFi.h>
 #include <ESP32Servo.h>
 #include <cmath>
@@ -292,14 +288,13 @@ void loop()
               int myval = valueString.toInt();
               if (myval < 200)
               {
+                int xValue = buraya bısey gelcek 
 
-                r[0] = myval/100.0;
+                r[0] = xValue/100.0;
+            
+                int yValue = buraya bısey gelcek 
 
-                ;
-              }
-              else if (myval > 600)
-              {
-                ratio = (myval - 800) / 100.0;
+                ratio = (yValue - 800) / 100.0;
               }
               else
               {
