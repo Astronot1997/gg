@@ -370,7 +370,7 @@ void RobotTurn(float aci_deg, int i) {  // Function to make a right turn
 //-------------------------------------------------------------------------------
 
 
-void RobotMove(float hiz_m_s, int i) {
+void RobotMove(float hiz_m_s, int i, unsigned long pwmValue3) {
   
   
   int PWM = (int)(hiz_m_s * 50.0f / 20.0f * 100.0f);
@@ -381,21 +381,28 @@ void RobotMove(float hiz_m_s, int i) {
          
 
   // left half motors
-  if (i % 2 == 0 && i != 0) {
+
+  bool sol = true;
+  if (pwmValue3 < 1800ul)
+{
+  sol = (i % 2 == 0); 
+}else{
+   sol = (i % 2 == 0 && i != 0); 
+ 
+}
+
+  if (sol>0) {//Birinci motor istisna "&& i != 0"
     locoPWMs[i] = -PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   } else {
     locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   }
-  // Birinci motor istisna
-  //int i = 0;
-  //locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
-}
+ }
 
 
 //-------------------------------------------------------------------------------
 
 
-void updateServos(int period_ms) {
+void updateServos(int period_ms, unsigned long pwmValue3) {
 
   if (millis() - lastServoUpdateTime > period_ms) {
 
@@ -413,8 +420,8 @@ void updateServos(int period_ms) {
       
 // limitle
       
-float hizlim=0.05f;
-float acilim=30.0f;
+float hizlim=0.20f;
+float acilim=80.0f;
 
       if (teker_acisi>acilim) {
         teker_acisi=acilim;
@@ -441,7 +448,7 @@ float acilim=30.0f;
 
       
       RobotTurn(teker_acisi, i);
-      RobotMove(teker_hizi, i);
+      RobotMove(teker_hizi, i, pwmValue3);
     }
     #ifdef Debug
         Serial.print("\nPWMLER ");
@@ -519,16 +526,15 @@ else{
   unsigned long pwmValue1 = pulseIn(channel1Pin, HIGH, 25000);
   unsigned long pwmValue2 = pulseIn(channel2Pin, HIGH, 25000);
   unsigned long pwmValue3 = pulseIn(buttonPin, HIGH);
-  float mappedValue1 = (float)((long)pwmValue1-1500l)/500.0f*20.0f;
+  float mappedValue1 = (float)((long)pwmValue1-1500l)/500.0f*100.0f;
   float mappedValue2 = (float)((long)pwmValue2-1500l)/500.0f*100.0f;
   
   if(seriden_yazilabilir){
-    Serial.printf("\nPv1:%d,Pv2:%d,Mv1:%f,Mv2:%f,Pwm3:%d",pwmValue1,pwmValue2,mappedValue2,pwmValue3);
+    Serial.printf("\nPv1:%lu,Pv2:%lu,Mv1:%f,Mv2:%f,Pwm3:%lu",pwmValue1,pwmValue2,mappedValue2,pwmValue3);
   }
 
   
-  updateServos(10);
-
+  updateServos(10, pwmValue3);
 
   if (pwmValue3 < 1500) {
 
@@ -646,14 +652,14 @@ float kucuk_deger = 0.01f;
     }
     
     // donus yaricapi hesapla
-    r[0] = 1.0f/atan2(mappedValue2,500.0f);
+    r[0] = 0.1f/atan2(mappedValue2,100.0f);
     
     if(seriden_yazilabilir){
       Serial.printf("\nJoystick Modu - DY=%f",r[0]);
     }
 
     v=mappedValue1/100.0f;
-    ratio = 100.0f / 100.0f;
+    ratio = 20.0f / 100.0f;
   }
   //vericekme();
 }
