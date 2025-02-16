@@ -7,6 +7,9 @@
 #include <Update.h>
 
 
+unsigned long yazma_zamani = 0;
+int seriden_yazilabilir = 0;
+
 
 //#define Debug 1
 // Define servos for steering and locomotion
@@ -497,17 +500,31 @@ float acilim=30.0f;
 
 
 void loop() {
+
+if(   millis()-yazma_zamani>1000)
+  {
+    yazma_zamani = millis();
+    seriden_yazilabilir=1;
+
+  }
+else{
+  seriden_yazilabilir=0;
+}
+
+
   #ifdef Debug
   delay(100);
 #endif 
-delay(100);
 
   unsigned long pwmValue1 = pulseIn(channel1Pin, HIGH, 25000);
   unsigned long pwmValue2 = pulseIn(channel2Pin, HIGH, 25000);
   unsigned long pwmValue3 = pulseIn(buttonPin, HIGH);
-  float mappedValue1 = (float)(pwmValue1-1000ul)/1000.0f*20.0f;
-  float mappedValue2 = (float)(pwmValue2-1000ul)/1000.0f*100.0f;
-  Serial.printf("\nMv1:%d,Mv2:%d,Pwm3:%d",mappedValue1,mappedValue2,pwmValue3);
+  float mappedValue1 = (float)((long)pwmValue1-1500l)/500.0f*20.0f;
+  float mappedValue2 = (float)((long)pwmValue2-1500l)/500.0f*100.0f;
+  
+  if(seriden_yazilabilir){
+    Serial.printf("\nPv1:%d,Pv2:%d,Mv1:%f,Mv2:%f,Pwm3:%d",pwmValue1,pwmValue2,mappedValue2,pwmValue3);
+  }
 
   
   updateServos(10);
@@ -515,7 +532,7 @@ delay(100);
 
   if (pwmValue3 < 1500) {
 
-    Serial.println("INTERNET");
+    Serial.println("Web Arayuz Modu");
     WiFiClient client = server.available();  // Listen for incoming clients
 
     if (client) {  // If a new client connects,
@@ -619,21 +636,21 @@ delay(100);
       Serial.println("");
     }
   }else{
-float kucuk_deger = 1.0f;
-    if (mappedValue2>kucuk_deger) {
-      mappedValue2=kucuk_deger;
 
-    }else if (mappedValue2<-kucuk_deger)
-    {
-      mappedValue2=-kucuk_deger;
+    //kucuk deger korumasi
+float kucuk_deger = 0.01f;
+    if (abs(mappedValue2)<kucuk_deger) {
+      mappedValue2=kucuk_deger;
     }else if (isnan(mappedValue2)) {
       mappedValue2=0;
-
     }
     
-    
+    // donus yaricapi hesapla
     r[0] = 1.0f/atan2(mappedValue2,500.0f);
-    Serial.printf("\nJoystick - DY=%f",r[0]);
+    
+    if(seriden_yazilabilir){
+      Serial.printf("\nJoystick Modu - DY=%f",r[0]);
+    }
 
     v=mappedValue1/100.0f;
     ratio = 100.0f / 100.0f;
