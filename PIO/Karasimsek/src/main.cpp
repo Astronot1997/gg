@@ -5,6 +5,10 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Update.h>
+
+
+
+//#define Debug 1
 // Define servos for steering and locomotion
 Servo steeringServos[6];
 Servo locomotionServos[6];
@@ -19,7 +23,7 @@ int steerPWMs[6] = { 0, 0, 0, 0, 0, 0 };
 int locoPWMs[6] = { 0, 0, 0, 0, 0, 0 };
 float oldSteerPWMs[6] = { 0, 0, 0, 0, 0, 0 };
 float oldLocoPWMs[6] = { 0, 0, 0, 0, 0, 0 };
-float ratio = 0.05;
+float ratio = 0.05f;
 float gecici_ratio;
 
 float teker_konumlari[][6] = { { -0.15, 0.75 }, { 0.15, 0.75 }, { -0.15, 0 }, { 0.15, 0 }, { -0.15, -0.75 }, { 0.15, -0.75 } };
@@ -53,15 +57,15 @@ unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
 //Joystick
-const int channel1Pin = 2;  // Kanal 1 için PWM sinyali
-const int channel2Pin = 4;  // Kanal 2 için PWM sinyali
+const uint channel1Pin = 2;  // Kanal 1 için PWM sinyali
+const uint channel2Pin = 4;  // Kanal 2 için PWM sinyali
 
 // Joystick üzerindeki düğme için giriş pini
-const int buttonPin = 35;  // Düğme pini (INPUT_PULLUP ile kullanıyoruz)
+const uint buttonPin = 35;  // Düğme pini (INPUT_PULLUP ile kullanıyoruz)
 
 // PWM sinyallerinin beklenen minimum ve maksimum değerleri (mikro saniye cinsinden)
-const int pwmMin = 1000;
-const int pwmMax = 2000;
+const uint pwmMin = 1000;
+const uint pwmMax = 2000;
 
 
 
@@ -271,7 +275,7 @@ void setup() {
   for (int i = 0; i < 6; i++) {
     oldSteerPWMs[i] = (float)steeringPWMOffsets[i];
     steerPWMs[i] = (float)steeringPWMOffsets[i];
-    oldLocoPWMs[i] = (locomotionPWMOffsetsLow[i] + locomotionPWMOffsetsHigh[i]) / 2.0;
+    oldLocoPWMs[i] = (locomotionPWMOffsetsLow[i] + locomotionPWMOffsetsHigh[i]) / 2.0f;
   }
   delay(1000);  // Wait for initialization
   String encoded = "YWlvX2tBZWw5OER2WTdZdGF0RDZVNnlRUnQ3NXFUYjA=";
@@ -329,13 +333,13 @@ float teker_hiz_bul(float r[], float T[], float v) {
 
 
 float teker_aci_bul(float r[], float T[], float v) {
-  float theta = -90 + atan2(r[0] - T[0], r[1] - T[1]) * 180.0 / 3.14;
+  float theta = -90 + atan2(r[0] - T[0], r[1] - T[1]) * 180.0f / 3.14f;
 
-  if (theta > 90.0) {
-    theta = theta - 180.0;
-  } else if (theta < -90.0) {
+  if (theta > 90.0f) {
+    theta = theta - 180.0f;
+  } else if (theta < -90.0f) {
 
-    theta = theta + 180.0;
+    theta = theta + 180.0f;
   }
   return theta;
 }
@@ -346,8 +350,11 @@ float teker_aci_bul(float r[], float T[], float v) {
 void RobotTurn(float aci_deg, int i) {  // Function to make a right turn
 
   int PWM = (int)aci_deg;
+  
+  #ifdef Debug
   Serial.print(" Turn:");    
-  Serial.print(PWM);  
+  Serial.print(PWM);
+  #endif  
   // Adjust steering servos to turn right
   // First three wheels (front half)
 
@@ -361,11 +368,14 @@ void RobotTurn(float aci_deg, int i) {  // Function to make a right turn
 
 
 void RobotMove(float hiz_m_s, int i) {
-
-  int PWM = (int)(hiz_m_s * 50 / 20 * 100);
-
+  
+  
+  int PWM = (int)(hiz_m_s * 50.0f / 20.0f * 100.0f);
+  #ifdef Debug
   Serial.print(" Move:");   
-  Serial.print(PWM);        
+  Serial.print(PWM); 
+  #endif 
+         
 
   // left half motors
   if (i % 2 == 0 && i != 0) {
@@ -393,46 +403,91 @@ void updateServos(int period_ms) {
 
       float teker_hizi = teker_hiz_bul(r, T, v);
       float teker_acisi = teker_aci_bul(r, T, v);
-
+      #ifdef Debug
       Serial.printf("\n%d.Teker=[%.0f,%.0f], Aci: %.0fder, Hiz: %.0f cm/s", i, T[0], T[1], teker_acisi, teker_hizi * 100);
+#endif 
+
+      
+// limitle
+      
+float hizlim=0.05f;
+float acilim=30.0f;
+
+      if (teker_acisi>acilim) {
+        teker_acisi=acilim;
+
+      }else if (teker_acisi<-acilim)
+      {
+        teker_acisi=-acilim;
+      }else if (isnan(teker_acisi)) {
+        teker_acisi=0;
+
+      }
+      if (teker_hizi>hizlim) {
+        teker_hizi=hizlim;
+
+      }else if (teker_hizi<-hizlim)
+      {
+        teker_hizi=-hizlim;
+      }else if (isnan(teker_hizi)) {
+        teker_hizi=0;
+
+      }
 
       // teker aci e hizleri pwm donustur
 
+      
       RobotTurn(teker_acisi, i);
       RobotMove(teker_hizi, i);
     }
+    #ifdef Debug
+        Serial.print("\nPWMLER ");
+#endif 
 
     // Servoya PWM degerlerini ata
     for (int i = 0; i < 6; i++) {
+      #ifdef Debug
+            Serial.printf(" M%d ",i);
+#endif 
+
       if (isnan(steerPWMs[i])) {
-        steerPWMs[i] = 0.0;
+        steerPWMs[i] = 0.0f;
       }
       // Steer
       oldSteerPWMs[i] = (1 - ratio) * oldSteerPWMs[i] + ratio * steerPWMs[i];
       steeringServos[i].write((int)oldSteerPWMs[i]);
+      #ifdef Debug
+             Serial.print((int)oldSteerPWMs[i]);
+       Serial.print(" ");
+#endif 
 
-      // Serial.print((int)oldSteerPWMs[i]);
-
-      // Serial.print(" ");
 
       if (isnan(locoPWMs[i])) {
-        locoPWMs[i] = 0.0;
+        locoPWMs[i] = 0.0f;
       }
       // Loco
-      oldLocoPWMs[i] = (1.0 - ratio) * oldLocoPWMs[i] + ratio * locoPWMs[i];
+      oldLocoPWMs[i] = (1.0f - ratio) * oldLocoPWMs[i] + ratio * locoPWMs[i];
       if (oldLocoPWMs[i] < locomotionPWMOffsetsHigh[i] && oldLocoPWMs[i] > locomotionPWMOffsetsLow[i]) {
         locomotionServos[i].write((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2);
-        // Serial.print(" G ");
+        #ifdef Debug
+          Serial.print((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2);
+  #endif 
       } else {
         locomotionServos[i].write((int)oldLocoPWMs[i]);
+        #ifdef Debug
+          Serial.print((int)oldLocoPWMs[i]);
+  #endif 
 
-        // Serial.print((int)oldLocoPWMs[i]);
 
-        // Serial.print(" ");
       }
+
+      #ifdef Debug
+            Serial.print(" ");
+#endif 
+
+
     }
 
-    // Serial.println(".");
   }
 }
 
@@ -442,13 +497,22 @@ void updateServos(int period_ms) {
 
 
 void loop() {
-  updateServos(10);
+  #ifdef Debug
+  delay(100);
+#endif 
+delay(100);
+
   unsigned long pwmValue1 = pulseIn(channel1Pin, HIGH, 25000);
   unsigned long pwmValue2 = pulseIn(channel2Pin, HIGH, 25000);
   unsigned long pwmValue3 = pulseIn(buttonPin, HIGH);
-  int mappedValue1 = map(pwmValue1, pwmMin, pwmMax, -20, 20);
-  int mappedValue2 = map(pwmValue2, pwmMin, pwmMax, -100, 100);
-  Serial.printf("Mv1:%d,Mv2:%d,Pwm3:%d",mappedValue1,mappedValue2,pwmValue3);
+  float mappedValue1 = (float)(pwmValue1-1000ul)/1000.0f*20.0f;
+  float mappedValue2 = (float)(pwmValue2-1000ul)/1000.0f*100.0f;
+  Serial.printf("\nMv1:%d,Mv2:%d,Pwm3:%d",mappedValue1,mappedValue2,pwmValue3);
+
+  
+  updateServos(10);
+
+
   if (pwmValue3 < 1500) {
 
     Serial.println("INTERNET");
@@ -523,15 +587,15 @@ void loop() {
                 int myval = valueString.toInt();
                 if (myval < 200) 
                 {
-                  r[0] = myval / 100.0;
+                  r[0] = myval / 100.0f;
                 } 
                 else if (myval > 600) 
                 {
-                  ratio = (myval - 800) / 100.0;
+                  ratio = (myval - 800) / 100.0f;
                 } 
                 else 
                 {
-                  v = (float)(myval - 400) / 100;
+                  v = (float)(myval - 400) / 100.0f;
                 }
                 Serial.println(valueString);
               }
@@ -555,10 +619,24 @@ void loop() {
       Serial.println("");
     }
   }else{
-    Serial.println("Joystick");
-    r[0] = float(mappedValue2)/100.0;
-    v=float(mappedValue1)/100.0;
-    ratio = 5 / 100.0;
+float kucuk_deger = 1.0f;
+    if (mappedValue2>kucuk_deger) {
+      mappedValue2=kucuk_deger;
+
+    }else if (mappedValue2<-kucuk_deger)
+    {
+      mappedValue2=-kucuk_deger;
+    }else if (isnan(mappedValue2)) {
+      mappedValue2=0;
+
+    }
+    
+    
+    r[0] = 1.0f/atan2(mappedValue2,500.0f);
+    Serial.printf("\nJoystick - DY=%f",r[0]);
+
+    v=mappedValue1/100.0f;
+    ratio = 100.0f / 100.0f;
   }
   //vericekme();
 }
