@@ -31,8 +31,8 @@ float v = 0;
 unsigned long lastServoUpdateTime = 0;
 
 // Replace with your network credentials
-const char *ssid = "Hasan adlı kişiye ait S24+";
-const char *password = "9gy84cqtezdixyp";
+const char *ssid = "AktekinGuduru";
+const char *password = "gizembahadir";
 
 // Set web server port number to 80
 WiFiServer server(80);
@@ -117,6 +117,24 @@ String base64_decode(String input) {
 
 
 
+
+void wifiBaglan() {
+  Serial.print("WiFi'ye bağlanılıyor...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi bağlantısı tamamlandı!");
+  Serial.print("IP Adresi: ");
+  Serial.println(WiFi.localIP());
+}
+//---------------------------------------Wİ-Fİ-----------------------------------------
+
+
+
+
+
 //------------------------------------------OTA----------------------------------------
 
 
@@ -165,20 +183,6 @@ void performOTAUpdate() {
 //------------------------------------------OTA----------------------------------------
 
 
-void wifiBaglan() {
-  Serial.print("WiFi'ye bağlanılıyor...");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi bağlantısı tamamlandı!");
-  Serial.print("IP Adresi: ");
-  Serial.println(WiFi.localIP());
-}
-//---------------------------------------Wİ-Fİ-----------------------------------------
-
-
 void vericekme() {
   if (WiFi.status() == WL_CONNECTED) {  // WiFi bağlıysa
     HTTPClient http;
@@ -207,7 +211,7 @@ void vericekme() {
         version = value;
       }
     } else {
-      Serial.println("Version feed alınamadı.");
+      Serial.println("Version feed alinamadi.");
     }
     http.end();
 
