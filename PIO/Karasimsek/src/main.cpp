@@ -652,14 +652,14 @@ float kucuk_deger = 0.01f;
     }
     
     // donus yaricapi hesapla
-    r[0] = 0.1f/atan2(mappedValue2,100.0f);
+    r[0] = 0.2f/atan2(mappedValue2,100.0f);
     
     if(seriden_yazilabilir){
       Serial.printf("\nJoystick Modu - DY=%f",r[0]);
     }
 
     v=mappedValue1/100.0f;
-    ratio = 20.0f / 100.0f;
+    ratio = 50.0f / 100.0f;
   }
   //vericekme();
 }
