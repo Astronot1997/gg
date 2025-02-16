@@ -1,4 +1,8 @@
 #include <Arduino.h>
+/*********
+  Rui Santos & Sara Santos - Random Nerd Tutorials
+  Complete project details at https://RandomNerdTutorials.com/esp32-servo-motor-web-server-arduino-ide/
+*********/
 #include <WiFi.h>
 #include <ESP32Servo.h>
 #include <cmath>
@@ -18,6 +22,15 @@ int locoPWMs[6] = {0, 0, 0, 0, 0, 0};
 float oldSteerPWMs[6] = {0, 0, 0, 0, 0, 0};
 float oldLocoPWMs[6] = {0, 0, 0, 0, 0, 0};
 float ratio = 0.05;
+
+
+
+unsigned long time_ms;
+float dt_ms;
+unsigned long   last_time_ms;
+float hedef_mesafe_cm;
+float alinan_yol_cm;
+
 
 float teker_konumlari[][6] = {{-0.15, 0.75}, {0.15, 0.75}, {-0.15, 0}, {0.15, 0}, {-0.15, -0.75}, {0.15, -0.75}};
 
@@ -148,8 +161,41 @@ void RobotMove(float hiz_m_s, int i)
 void updateServos(int period_ms)
 {
 
+
+
+
+
+
+
+
+
   if (millis() - lastServoUpdateTime > period_ms)
   {
+
+
+
+
+  // Time calc.
+time_ms=millis();
+  dt_ms=float(time_ms-last_time_ms);
+  last_time_ms=time_ms;
+
+alinan_yol_cm=alinan_yol_cm+v*dt_ms/1000.0;
+
+Serial.print("Alinan Yol");
+Serial.println(alinan_yol_cm);
+
+Serial.print("Hedef mesafe");
+Serial.println(hedef_mesafe_cm);
+
+if (alinan_yol_cm>hedef_mesafe_cm){
+  //dur
+  v=0.0;
+}else{
+  //devam
+  v=10.0;
+}
+
 
     lastServoUpdateTime = millis();
 
@@ -210,7 +256,12 @@ void updateServos(int period_ms)
 
 void loop()
 {
-  updateServos(10);
+
+  
+
+
+
+  updateServos(100);
   WiFiClient client = server.available(); // Listen for incoming clients
 
   if (client)
@@ -258,7 +309,7 @@ void loop()
             client.println("<input type=\"range\" min=\"-100\" max=\"100\" class=\"slider\" id=\"servoSlider\" onchange=\"servo(this.value)\" value=\"" + valueString + "\"/>");
 
             // 2.  kayıcı ileri hız için
-            client.println("<p>HIZ [cm/s]:  <span id=\"movePWM\"></span></p>");
+            client.println("<p>HEDEF MESAFE [cm]:  <span id=\"movePWM\"></span></p>");
             client.println("<input type=\"range\" min=\"-20\" max=\"20\" class=\"slider\" id=\"moveSlider\" onchange=\"servo(parseInt(this.value) + Number(400))\" value=\"" + valueString + "\"/>");
 
             // 3.  kayıcı oran için
@@ -288,18 +339,20 @@ void loop()
               int myval = valueString.toInt();
               if (myval < 200)
               {
-                int xValue = buraya bısey gelcek 
 
-                r[0] = xValue/100.0;
-            
-                int yValue = buraya bısey gelcek 
+                r[0] = myval/100.0;
 
-                ratio = (yValue - 800) / 100.0;
+                
+              }
+              else if (myval > 600)
+              {
+                ratio = (myval - 800) / 100.0;
               }
               else
               {
 
-                v = (float)(myval - 400) / 100;
+                hedef_mesafe_cm = hedef_mesafe_cm + (float)(myval - 400) / 100;
+
               }
 
               Serial.println(valueString);
@@ -328,3 +381,5 @@ void loop()
     Serial.println("");
   }
 }
+
+
