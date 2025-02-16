@@ -53,11 +53,11 @@ unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
 //Joystick
-const int channel1Pin = 39;  // Kanal 1 için PWM sinyali
-const int channel2Pin = 35;  // Kanal 2 için PWM sinyali
+const int channel1Pin = 2;  // Kanal 1 için PWM sinyali
+const int channel2Pin = 4;  // Kanal 2 için PWM sinyali
 
 // Joystick üzerindeki düğme için giriş pini
-const int buttonPin = 32;  // Düğme pini (INPUT_PULLUP ile kullanıyoruz)
+const int buttonPin = 35;  // Düğme pini (INPUT_PULLUP ile kullanıyoruz)
 
 // PWM sinyallerinin beklenen minimum ve maksimum değerleri (mikro saniye cinsinden)
 const int pwmMin = 1000;
@@ -346,8 +346,8 @@ float teker_aci_bul(float r[], float T[], float v) {
 void RobotTurn(float aci_deg, int i) {  // Function to make a right turn
 
   int PWM = (int)aci_deg;
-  //Serial.print(" Turn:");    unutma
-  //Serial.print(PWM);  unutma
+  Serial.print(" Turn:");    
+  Serial.print(PWM);  
   // Adjust steering servos to turn right
   // First three wheels (front half)
 
@@ -364,8 +364,8 @@ void RobotMove(float hiz_m_s, int i) {
 
   int PWM = (int)(hiz_m_s * 50 / 20 * 100);
 
-  //Serial.print(" Move:");   unutma
-  //Serial.print(PWM);        unutma
+  Serial.print(" Move:");   
+  Serial.print(PWM);        
 
   // left half motors
   if (i % 2 == 0 && i != 0) {
@@ -394,7 +394,7 @@ void updateServos(int period_ms) {
       float teker_hizi = teker_hiz_bul(r, T, v);
       float teker_acisi = teker_aci_bul(r, T, v);
 
-      //Serial.printf("\n%d.Teker=[%.0f,%.0f], Aci: %.0fder, Hiz: %.0f cm/s", i, T[0], T[1], teker_acisi, teker_hizi * 100);   unutma
+      Serial.printf("\n%d.Teker=[%.0f,%.0f], Aci: %.0fder, Hiz: %.0f cm/s", i, T[0], T[1], teker_acisi, teker_hizi * 100);
 
       // teker aci e hizleri pwm donustur
 
@@ -448,9 +448,12 @@ void loop() {
   unsigned long pwmValue3 = pulseIn(buttonPin, HIGH);
   int mappedValue1 = map(pwmValue1, pwmMin, pwmMax, -20, 20);
   int mappedValue2 = map(pwmValue2, pwmMin, pwmMax, -100, 100);
-  pwmValue3=1700;
-  WiFiClient client = server.available();  // Listen for incoming clients
+  Serial.printf("Mv1:%d,Mv2:%d,Pwm3:%d",mappedValue1,mappedValue2,pwmValue3);
   if (pwmValue3 < 1500) {
+
+    Serial.println("INTERNET");
+    WiFiClient client = server.available();  // Listen for incoming clients
+
     if (client) {  // If a new client connects,
       currentTime = millis();
       previousTime = currentTime;
@@ -552,10 +555,10 @@ void loop() {
       Serial.println("");
     }
   }else{
-    Serial.println("Joystick aktif, web değerleri göz ardı ediliyor.");
-    r[0] = float(pwmValue1)/100.0;
-    v=float(pwmValue2)/100.0;
+    Serial.println("Joystick");
+    r[0] = float(mappedValue2)/100.0;
+    v=float(mappedValue1)/100.0;
     ratio = 5 / 100.0;
   }
-  vericekme();
+  //vericekme();
 }
