@@ -38,8 +38,8 @@ float v = 0;
 unsigned long lastServoUpdateTime = 0;
 
 // Replace with your network credentials
-const char *ssid = "AktekinGuduru";
-const char *password = "gizembahadir";
+const char *ssid = "ASUS-CAN 1161";
+const char *password = "8T5298[a";
 
 // Set web server port number to 80
 WiFiServer server(80);
