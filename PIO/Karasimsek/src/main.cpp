@@ -6,32 +6,30 @@
 #include <ArduinoJson.h>
 #include <Update.h>
 
-
 unsigned long yazma_zamani = 0;
 int seriden_yazilabilir = 0;
 
-
-//#define Debug 1
-// Define servos for steering and locomotion
+// #define Debug 1
+//  Define servos for steering and locomotion
 Servo steeringServos[6];
 Servo locomotionServos[6];
 
 // Define servo pins % this pins are for D0 to D12 on arduino 3 1 26 25 17 16 27 14 12 13 5 23 19 18
-int locomotionPins[6] = { 26, 17, 14, 13, 5, 19 };
-int steeringPins[6] = { 25, 16, 27, 12, 23, 18 };
-int steeringPWMOffsets[6] = { 90, 100, 91, 96, 109, 101 };
-int locomotionPWMOffsetsLow[6] = { 89, 87, 89, 89, 87, 89 };
-int locomotionPWMOffsetsHigh[6] = { 99, 97, 99, 99, 97, 99 };
-int steerPWMs[6] = { 0, 0, 0, 0, 0, 0 };
-int locoPWMs[6] = { 0, 0, 0, 0, 0, 0 };
-float oldSteerPWMs[6] = { 0, 0, 0, 0, 0, 0 };
-float oldLocoPWMs[6] = { 0, 0, 0, 0, 0, 0 };
+int locomotionPins[6] = {26, 17, 14, 13, 5, 19};
+int steeringPins[6] = {25, 16, 27, 12, 23, 18};
+int steeringPWMOffsets[6] = {90, 100, 91, 96, 109, 101};
+int locomotionPWMOffsetsLow[6] = {89, 87, 89, 89, 87, 89};
+int locomotionPWMOffsetsHigh[6] = {99, 97, 99, 99, 97, 99};
+int steerPWMs[6] = {0, 0, 0, 0, 0, 0};
+int locoPWMs[6] = {0, 0, 0, 0, 0, 0};
+float oldSteerPWMs[6] = {0, 0, 0, 0, 0, 0};
+float oldLocoPWMs[6] = {0, 0, 0, 0, 0, 0};
 float ratio = 0.05f;
 float gecici_ratio;
 
-float teker_konumlari[][6] = { { -0.15, 0.75 }, { 0.15, 0.75 }, { -0.15, 0 }, { 0.15, 0 }, { -0.15, -0.75 }, { 0.15, -0.75 } };
+float teker_konumlari[][6] = {{-0.15, 0.75}, {0.15, 0.75}, {-0.15, 0}, {0.15, 0}, {-0.15, -0.75}, {0.15, -0.75}};
 
-float r[] = { 1000, 0 };
+float r[] = {1000, 0};
 float v = 0;
 
 // Previous time for servo update
@@ -59,59 +57,68 @@ unsigned long currentTime = millis();
 unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
-//Joystick
-const uint channel1Pin = 2;  // Kanal 1 için PWM sinyali
-const uint channel2Pin = 4;  // Kanal 2 için PWM sinyali
+// Joystick
+const uint channel1Pin = 2; // Kanal 1 için PWM sinyali
+const uint channel2Pin = 4; // Kanal 2 için PWM sinyali
 
 // Joystick üzerindeki düğme için giriş pini
-const uint buttonPin = 35;  // Düğme pini (INPUT_PULLUP ile kullanıyoruz)
+const uint buttonPin = 35; // Düğme pini (INPUT_PULLUP ile kullanıyoruz)
 
 // PWM sinyallerinin beklenen minimum ve maksimum değerleri (mikro saniye cinsinden)
 const uint pwmMin = 1000;
 const uint pwmMax = 2000;
 
+String aio_username = "ahmetcancmz"; // Adafruit IO kullanıcı adınız
+String aio_key = "";                 // Adafruit IO Key
 
-
-String aio_username = "ahmetcancmz";  // Adafruit IO kullanıcı adınız
-String aio_key = "";                  // Adafruit IO Key
-
-const String version_feed = "version";  // Adafruit IO'daki version feed adı
-const String url_feed = "url";          // Adafruit IO'daki url feed adı
-const char* feed_name = "mesaj";        // Feed adı
+const String version_feed = "version"; // Adafruit IO'daki version feed adı
+const String url_feed = "url";         // Adafruit IO'daki url feed adı
+const char *feed_name = "mesaj";       // Feed adı
 String firmwareURL = "";
 String version = "";
-String currentversion = "";  // JSON'dan çekilecek "version" değişkeni
-String url_value = "";       // JSON'dan çekilecek "url" değişkeni
+String currentversion = ""; // JSON'dan çekilecek "version" değişkeni
+String url_value = "";      // JSON'dan çekilecek "url" değişkeni
 //--------------------------------------------------------------------------------
 const String base64_chars =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  "abcdefghijklmnopqrstuvwxyz"
-  "0123456789+/";
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789+/";
 String decoded2 = "";
-int base64_char_to_value(char c) {
-  if (c >= 'A' && c <= 'Z') return c - 'A';
-  if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-  if (c >= '0' && c <= '9') return c - '0' + 52;
-  if (c == '+') return 62;
-  if (c == '/') return 63;
-  return -1;  // Geçersiz karakter
+int base64_char_to_value(char c)
+{
+  if (c >= 'A' && c <= 'Z')
+    return c - 'A';
+  if (c >= 'a' && c <= 'z')
+    return c - 'a' + 26;
+  if (c >= '0' && c <= '9')
+    return c - '0' + 52;
+  if (c == '+')
+    return 62;
+  if (c == '/')
+    return 63;
+  return -1; // Geçersiz karakter
 }
 
-String base64_decode(String input) {
+String base64_decode(String input)
+{
   String output = "";
   int buffer = 0, bits_collected = 0;
 
-  for (int i = 0; i < input.length(); i++) {
+  for (int i = 0; i < input.length(); i++)
+  {
     char c = input.charAt(i);
-    if (c == '=') break;  // Padding karakterlerini atla
+    if (c == '=')
+      break; // Padding karakterlerini atla
 
     int value = base64_char_to_value(c);
-    if (value < 0) continue;  // Geçersiz karakterleri atla
+    if (value < 0)
+      continue; // Geçersiz karakterleri atla
 
     buffer = (buffer << 6) | value;
     bits_collected += 6;
 
-    if (bits_collected >= 8) {
+    if (bits_collected >= 8)
+    {
       bits_collected -= 8;
       char decoded_char = (buffer >> bits_collected) & 0xFF;
       output += decoded_char;
@@ -121,14 +128,12 @@ String base64_decode(String input) {
   return output;
 }
 
-
-
-
-
-void wifiBaglan() {
+void wifiBaglan()
+{
   Serial.print("WiFi'ye bağlanılıyor...");
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -138,60 +143,70 @@ void wifiBaglan() {
 }
 //---------------------------------------Wİ-Fİ-----------------------------------------
 
-
-
-
-
 //------------------------------------------OTA----------------------------------------
 
-
-
-
-void performOTAUpdate() {
-  if (WiFi.status() == WL_CONNECTED) {
+void performOTAUpdate()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
     HTTPClient http;
-    http.begin(firmwareURL);  // GitHub'daki bin dosyasının raw linki
+    http.begin(firmwareURL); // GitHub'daki bin dosyasının raw linki
     int httpCode = http.GET();
 
-    if (httpCode == HTTP_CODE_OK) {
+    if (httpCode == HTTP_CODE_OK)
+    {
       int contentLength = http.getSize();
       bool canBegin = Update.begin(contentLength);
 
-      if (canBegin) {
+      if (canBegin)
+      {
         Serial.println("OTA güncellemesi başlıyor...");
         size_t written = Update.writeStream(http.getStream());
 
-        if (written == contentLength) {
+        if (written == contentLength)
+        {
           Serial.println("OTA güncellemesi başarıyla tamamlandı.");
-        } else {
+        }
+        else
+        {
           Serial.printf("OTA yazma hatası: %d\n", written);
         }
 
-        if (Update.end()) {
+        if (Update.end())
+        {
           currentversion = version;
           Serial.println("OTA güncellemesi tamamlandı, yeniden başlatılıyor...");
           Serial.println(currentversion);
           ESP.restart();
-        } else {
+        }
+        else
+        {
           Serial.printf("OTA güncellemesi başarısız! Hata: %s\n", Update.errorString());
         }
-      } else {
+      }
+      else
+      {
         Serial.println("OTA güncellemesi başlatılamadı!");
       }
-    } else {
+    }
+    else
+    {
       Serial.printf("HTTP isteği başarısız, hata kodu: %d\n", httpCode);
     }
     http.end();
-  } else {
+  }
+  else
+  {
     Serial.println("WiFi bağlantısı yok!");
     wifiBaglan();
   }
 }
 //------------------------------------------OTA----------------------------------------
 
-
-void vericekme() {
-  if (WiFi.status() == WL_CONNECTED) {  // WiFi bağlıysa
+void vericekme()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  { // WiFi bağlıysa
     HTTPClient http;
 
     // Version feed'inden veri çek
@@ -200,24 +215,30 @@ void vericekme() {
     http.addHeader("X-AIO-Key", aio_key);
     int httpResponseCode = http.GET();
 
-    if (httpResponseCode > 0) {
+    if (httpResponseCode > 0)
+    {
       String version_response = http.getString();
-      //Serial.println("Gelen Version JSON: " + version_response);
+      // Serial.println("Gelen Version JSON: " + version_response);
 
       // JSON verisini ayrıştır ve sadece "value" değerini al
-      StaticJsonDocument<300> doc;  // JSON ayrıştırma için buffer
+      StaticJsonDocument<300> doc; // JSON ayrıştırma için buffer
       DeserializationError error = deserializeJson(doc, version_response);
 
-      if (error) {
+      if (error)
+      {
         Serial.print("JSON Ayrıştırma Hatası: ");
         Serial.println(error.f_str());
-      } else {
+      }
+      else
+      {
         String value = doc["value"];
         Serial.print("Version Değeri (Sadece value): ");
         Serial.println(value);
         version = value;
       }
-    } else {
+    }
+    else
+    {
       Serial.println("Version feed alinamadi.");
     }
     http.end();
@@ -228,34 +249,45 @@ void vericekme() {
     http.addHeader("X-AIO-Key", aio_key);
     httpResponseCode = http.GET();
 
-    if (httpResponseCode > 0) {
+    if (httpResponseCode > 0)
+    {
       String url_response = http.getString();
-      //Serial.println("Gelen URL JSON: " + url_response);
+      // Serial.println("Gelen URL JSON: " + url_response);
 
       // JSON verisini ayrıştır ve sadece "value" değerini al
-      StaticJsonDocument<300> doc;  // JSON ayrıştırma için buffer
+      StaticJsonDocument<300> doc; // JSON ayrıştırma için buffer
       DeserializationError error = deserializeJson(doc, url_response);
 
-      if (error) {
+      if (error)
+      {
         Serial.print("JSON Ayrıştırma Hatası: ");
         Serial.println(error.f_str());
-      } else {
+      }
+      else
+      {
         String value = doc["value"];
         Serial.print("URL Değeri (Sadece value): ");
         Serial.println(value);
         firmwareURL = value;
       }
-    } else {
+    }
+    else
+    {
       Serial.println("URL feed alınamadı.");
     }
     http.end();
-  } else {
+  }
+  else
+  {
     Serial.println("WiFi bağlantısı yok!");
     wifiBaglan();
   }
-  if (currentversion == version) {
+  if (currentversion == version)
+  {
     Serial.println("Cihazınız güncel durumdadır.");
-  } else {
+  }
+  else
+  {
     Serial.println("Güncelleme başlatılıyor...");
     performOTAUpdate();
   }
@@ -263,30 +295,34 @@ void vericekme() {
 
 //-------------------------------------------Veri ve güncelleme----------
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   pinMode(channel1Pin, INPUT);
   pinMode(channel2Pin, INPUT);
   pinMode(buttonPin, INPUT);
   // Attach all servos
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 6; i++)
+  {
     steeringServos[i].attach(steeringPins[i]);
     locomotionServos[i].attach(locomotionPins[i]);
   }
 
   // Set all wheels to straight position at the start
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 6; i++)
+  {
     oldSteerPWMs[i] = (float)steeringPWMOffsets[i];
     steerPWMs[i] = (float)steeringPWMOffsets[i];
     oldLocoPWMs[i] = (locomotionPWMOffsetsLow[i] + locomotionPWMOffsetsHigh[i]) / 2.0f;
   }
-  delay(1000);  // Wait for initialization
+  delay(1000); // Wait for initialization
   String encoded = "YWlvX2tBZWw5OER2WTdZdGF0RDZVNnlRUnQ3NXFUYjA=";
   String decoded = base64_decode(encoded);
   aio_key = decoded;
   // Connect to Wi-Fi network with SSID and password
   wifiBaglan();
-  if (WiFi.status() == WL_CONNECTED) {  // WiFi bağlıysa
+  if (WiFi.status() == WL_CONNECTED)
+  { // WiFi bağlıysa
     HTTPClient http;
 
     // Version feed'inden veri çek
@@ -295,28 +331,36 @@ void setup() {
     http.addHeader("X-AIO-Key", aio_key);
     int httpResponseCode = http.GET();
 
-    if (httpResponseCode > 0) {
+    if (httpResponseCode > 0)
+    {
       String version_response = http.getString();
-      //Serial.println("Gelen Version JSON: " + version_response);
+      // Serial.println("Gelen Version JSON: " + version_response);
 
       // JSON verisini ayrıştır ve sadece "value" değerini al
-      StaticJsonDocument<300> doc;  // JSON ayrıştırma için buffer
+      StaticJsonDocument<300> doc; // JSON ayrıştırma için buffer
       DeserializationError error = deserializeJson(doc, version_response);
 
-      if (error) {
+      if (error)
+      {
         Serial.print("JSON Ayrıştırma Hatası: ");
         Serial.println(error.f_str());
-      } else {
+      }
+      else
+      {
         String value = doc["value"];
         Serial.print("Version Değeri (Sadece value): ");
         Serial.println(value);
         currentversion = value;
       }
-    } else {
+    }
+    else
+    {
       Serial.println("Version feed alınamadı.");
     }
     http.end();
-  } else {
+  }
+  else
+  {
     Serial.println("WiFi bağlantısı yok!");
     wifiBaglan();
   }
@@ -325,39 +369,42 @@ void setup() {
 
 //-------------------------------------------------------------------------------
 
-float teker_hiz_bul(float r[], float T[], float v) {
+float teker_hiz_bul(float r[], float T[], float v)
+{
   float beta = v * sqrt((pow((r[0] - T[0]), 2) + pow((r[1] - T[1]), 2)) / (pow(r[0], 2) + pow(r[1], 2)));
 
   return beta;
 }
 
-
 //-------------------------------------------------------------------------------
 
-
-float teker_aci_bul(float r[], float T[], float v) {
+float teker_aci_bul(float r[], float T[], float v)
+{
   float theta = -90 + atan2(r[0] - T[0], r[1] - T[1]) * 180.0f / 3.14f;
 
-  if (theta > 90.0f) {
+  if (theta > 90.0f)
+  {
     theta = theta - 180.0f;
-  } else if (theta < -90.0f) {
+  }
+  else if (theta < -90.0f)
+  {
 
     theta = theta + 180.0f;
   }
   return theta;
 }
 
-
 //-------------------------------------------------------------------------------
 
-void RobotTurn(float aci_deg, int i) {  // Function to make a right turn
+void RobotTurn(float aci_deg, int i)
+{ // Function to make a right turn
 
   int PWM = (int)aci_deg;
-  
-  #ifdef Debug
-  Serial.print(" Turn:");    
+
+#ifdef Debug
+  Serial.print(" Turn:");
   Serial.print(PWM);
-  #endif  
+#endif
   // Adjust steering servos to turn right
   // First three wheels (front half)
 
@@ -366,196 +413,203 @@ void RobotTurn(float aci_deg, int i) {  // Function to make a right turn
   steerPWMs[i] = servoPWM;
 }
 
-
 //-------------------------------------------------------------------------------
 
+void RobotMove(float hiz_m_s, int i, unsigned long pwmValue3)
+{
 
-void RobotMove(float hiz_m_s, int i, unsigned long pwmValue3) {
-  
-  
   int PWM = (int)(hiz_m_s * 50.0f / 20.0f * 100.0f);
-  #ifdef Debug
-  Serial.print(" Move:");   
-  Serial.print(PWM); 
-  #endif 
-         
+#ifdef Debug
+  Serial.print(" Move:");
+  Serial.print(PWM);
+#endif
 
   // left half motors
 
   bool sol = true;
   if (pwmValue3 < 1800ul)
-{
-  sol = (i % 2 == 0); 
-}else{
-   sol = (i % 2 == 0 && i != 0); 
- 
-}
+  {
+    sol = (i % 2 == 0);
+  }
+  else
+  {
+    sol = (i % 2 == 0 && i != 0);
+  }
 
-  if (sol>0) {//Birinci motor istisna "&& i != 0"
+  if (sol > 0)
+  { // Birinci motor istisna "&& i != 0"
     locoPWMs[i] = -PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
-  } else {
+  }
+  else
+  {
     locoPWMs[i] = PWM + (locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2;
   }
- }
-
+}
 
 //-------------------------------------------------------------------------------
 
+void updateServos(int period_ms, unsigned long pwmValue3)
+{
 
-void updateServos(int period_ms, unsigned long pwmValue3) {
-
-  if (millis() - lastServoUpdateTime > period_ms) {
+  if (millis() - lastServoUpdateTime > period_ms)
+  {
 
     lastServoUpdateTime = millis();
 
-    for (int i = 0; i < 6; i++) {
-      float T[2] = { teker_konumlari[i][0], teker_konumlari[i][1] };
+    for (int i = 0; i < 6; i++)
+    {
+      float T[2] = {teker_konumlari[i][0], teker_konumlari[i][1]};
 
       float teker_hizi = teker_hiz_bul(r, T, v);
       float teker_acisi = teker_aci_bul(r, T, v);
-      #ifdef Debug
+#ifdef Debug
       Serial.printf("\n%d.Teker=[%.0f,%.0f], Aci: %.0fder, Hiz: %.0f cm/s", i, T[0], T[1], teker_acisi, teker_hizi * 100);
-#endif 
+#endif
 
-      
-// limitle
-      
-float hizlim=0.20f;
-float acilim=80.0f;
+      // limitle
 
-      if (teker_acisi>acilim) {
-        teker_acisi=acilim;
+      float hizlim = 0.20f;
+      float acilim = 80.0f;
 
-      }else if (teker_acisi<-acilim)
+      if (teker_acisi > acilim)
       {
-        teker_acisi=-acilim;
-      }else if (isnan(teker_acisi)) {
-        teker_acisi=0;
-
+        teker_acisi = acilim;
       }
-      if (teker_hizi>hizlim) {
-        teker_hizi=hizlim;
-
-      }else if (teker_hizi<-hizlim)
+      else if (teker_acisi < -acilim)
       {
-        teker_hizi=-hizlim;
-      }else if (isnan(teker_hizi)) {
-        teker_hizi=0;
-
+        teker_acisi = -acilim;
+      }
+      else if (isnan(teker_acisi))
+      {
+        teker_acisi = 0;
+      }
+      if (teker_hizi > hizlim)
+      {
+        teker_hizi = hizlim;
+      }
+      else if (teker_hizi < -hizlim)
+      {
+        teker_hizi = -hizlim;
+      }
+      else if (isnan(teker_hizi))
+      {
+        teker_hizi = 0;
       }
 
       // teker aci e hizleri pwm donustur
 
-      
       RobotTurn(teker_acisi, i);
       RobotMove(teker_hizi, i, pwmValue3);
     }
-    #ifdef Debug
-        Serial.print("\nPWMLER ");
-#endif 
+#ifdef Debug
+    Serial.print("\nPWMLER ");
+#endif
 
     // Servoya PWM degerlerini ata
-    for (int i = 0; i < 6; i++) {
-      #ifdef Debug
-            Serial.printf(" M%d ",i);
-#endif 
+    for (int i = 0; i < 6; i++)
+    {
+#ifdef Debug
+      Serial.printf(" M%d ", i);
+#endif
 
-      if (isnan(steerPWMs[i])) {
+      if (isnan(steerPWMs[i]))
+      {
         steerPWMs[i] = 0.0f;
       }
       // Steer
       oldSteerPWMs[i] = (1 - ratio) * oldSteerPWMs[i] + ratio * steerPWMs[i];
       steeringServos[i].write((int)oldSteerPWMs[i]);
-      #ifdef Debug
-             Serial.print((int)oldSteerPWMs[i]);
-       Serial.print(" ");
-#endif 
+#ifdef Debug
+      Serial.print((int)oldSteerPWMs[i]);
+      Serial.print(" ");
+#endif
 
-
-      if (isnan(locoPWMs[i])) {
+      if (isnan(locoPWMs[i]))
+      {
         locoPWMs[i] = 0.0f;
       }
       // Loco
       oldLocoPWMs[i] = (1.0f - ratio) * oldLocoPWMs[i] + ratio * locoPWMs[i];
-      if (oldLocoPWMs[i] < locomotionPWMOffsetsHigh[i] && oldLocoPWMs[i] > locomotionPWMOffsetsLow[i]) {
+      if (oldLocoPWMs[i] < locomotionPWMOffsetsHigh[i] && oldLocoPWMs[i] > locomotionPWMOffsetsLow[i])
+      {
         locomotionServos[i].write((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2);
-        #ifdef Debug
-          Serial.print((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2);
-  #endif 
-      } else {
+#ifdef Debug
+        Serial.print((locomotionPWMOffsetsHigh[i] + locomotionPWMOffsetsLow[i]) / 2);
+#endif
+      }
+      else
+      {
         locomotionServos[i].write((int)oldLocoPWMs[i]);
-        #ifdef Debug
-          Serial.print((int)oldLocoPWMs[i]);
-  #endif 
-
-
+#ifdef Debug
+        Serial.print((int)oldLocoPWMs[i]);
+#endif
       }
 
-      #ifdef Debug
-            Serial.print(" ");
-#endif 
-
-
+#ifdef Debug
+      Serial.print(" ");
+#endif
     }
-
   }
 }
-
 
 //-------------------------------------------------------------------------------
 
+void loop()
+{
 
-
-void loop() {
-
-if(   millis()-yazma_zamani>1000)
+  if (millis() - yazma_zamani > 1000)
   {
     yazma_zamani = millis();
-    seriden_yazilabilir=1;
-
+    seriden_yazilabilir = 1;
   }
-else{
-  seriden_yazilabilir=0;
-}
+  else
+  {
+    seriden_yazilabilir = 0;
+  }
 
-
-  #ifdef Debug
+#ifdef Debug
   delay(100);
-#endif 
+#endif
 
   unsigned long pwmValue1 = pulseIn(channel1Pin, HIGH, 25000);
   unsigned long pwmValue2 = pulseIn(channel2Pin, HIGH, 25000);
   unsigned long pwmValue3 = pulseIn(buttonPin, HIGH);
-  float mappedValue1 = (float)((long)pwmValue1-1500l)/500.0f*100.0f;
-  float mappedValue2 = (float)((long)pwmValue2-1500l)/500.0f*100.0f;
-  
-  if(seriden_yazilabilir){
-    Serial.printf("\nPv1:%lu,Pv2:%lu,Mv1:%f,Mv2:%f,Pwm3:%lu",pwmValue1,pwmValue2,mappedValue2,pwmValue3);
+  float mappedValue1 = (float)((long)pwmValue1 - 1500l) / 500.0f * 100.0f;
+  float mappedValue2 = (float)((long)pwmValue2 - 1500l) / 500.0f * 100.0f;
+
+  if (seriden_yazilabilir)
+  {
+    Serial.printf("\nPv1:%lu,Pv2:%lu,Mv1:%f,Mv2:%f,Pwm3:%lu", pwmValue1, pwmValue2, mappedValue2, pwmValue3);
   }
 
-  
   updateServos(10, pwmValue3);
 
-  if (pwmValue3 < 1500) {
+  if (pwmValue3 < 1500)
+  {
 
     Serial.println("Web Arayuz Modu");
-    WiFiClient client = server.available();  // Listen for incoming clients
+    WiFiClient client = server.available(); // Listen for incoming clients
 
-    if (client) {  // If a new client connects,
+    if (client)
+    { // If a new client connects,
       currentTime = millis();
       previousTime = currentTime;
-      Serial.println("New Client.");                                             // print a message out in the serial port
-      String currentLine = "";                                                   // make a String to hold incoming data from the client
-      while (client.connected() && currentTime - previousTime <= timeoutTime) {  // loop while the client's connected
+      Serial.println("New Client."); // print a message out in the serial port
+      String currentLine = "";       // make a String to hold incoming data from the client
+      while (client.connected() && currentTime - previousTime <= timeoutTime)
+      { // loop while the client's connected
         currentTime = millis();
-        if (client.available()) {  // if there's bytes to read from the client,
-          char c = client.read();  // read a byte, then
-          Serial.write(c);         // print it out the serial monitor
+        if (client.available())
+        {                         // if there's bytes to read from the client,
+          char c = client.read(); // read a byte, then
+          Serial.write(c);        // print it out the serial monitor
           header += c;
-          if (c == '\n') {  // if the byte is a newline character
+          if (c == '\n')
+          { // if the byte is a newline character
             // if the current line is blank, you got two newline characters in a row.
             // that's the end of the client HTTP request, so send a response:
-            if (currentLine.length() == 0) {
+            if (currentLine.length() == 0)
+            {
               // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
               // and a content-type so the client knows what's coming, then a blank line:
               client.println("HTTP/1.1 200 OK");
@@ -601,22 +655,23 @@ else{
               client.println("</body></html>");
 
               // GET /?value=180& HTTP/1.1
-              if (header.indexOf("GET /?value=") >= 0) {
+              if (header.indexOf("GET /?value=") >= 0)
+              {
                 pos1 = header.indexOf('=');
                 pos2 = header.indexOf('&');
                 valueString = header.substring(pos1 + 1, pos2);
 
                 // Rotate the servo
                 int myval = valueString.toInt();
-                if (myval < 200) 
+                if (myval < 200)
                 {
                   r[0] = myval / 100.0f;
-                } 
-                else if (myval > 600) 
+                }
+                else if (myval > 600)
                 {
                   ratio = (myval - 800) / 100.0f;
-                } 
-                else 
+                }
+                else
                 {
                   v = (float)(myval - 400) / 100.0f;
                 }
@@ -626,11 +681,15 @@ else{
               client.println();
               // Break out of the while loop
               break;
-            } else {  // if you got a newline, then clear currentLine
+            }
+            else
+            { // if you got a newline, then clear currentLine
               currentLine = "";
             }
-          } else if (c != '\r') {  // if you got anything else but a carriage return character,
-            currentLine += c;      // add it to the end of the currentLine
+          }
+          else if (c != '\r')
+          {                   // if you got anything else but a carriage return character,
+            currentLine += c; // add it to the end of the currentLine
           }
         }
       }
@@ -641,25 +700,31 @@ else{
       Serial.println("Client disconnected.");
       Serial.println("");
     }
-  }else{
+  }
+  else
+  {
 
-    //kucuk deger korumasi
-float kucuk_deger = 0.01f;
-    if (abs(mappedValue2)<kucuk_deger) {
-      mappedValue2=kucuk_deger;
-    }else if (isnan(mappedValue2)) {
-      mappedValue2=0;
+    // kucuk deger korumasi
+    float kucuk_deger = 0.01f;
+    if (abs(mappedValue2) < kucuk_deger)
+    {
+      mappedValue2 = kucuk_deger;
     }
-    
+    else if (isnan(mappedValue2))
+    {
+      mappedValue2 = 0;
+    }
+
     // donus yaricapi hesapla
-    r[0] = 0.2f/atan2(mappedValue2,100.0f);
-    
-    if(seriden_yazilabilir){
-      Serial.printf("\nJoystick Modu - DY=%f",r[0]);
+    r[0] = 0.2f / atan2(mappedValue2, 100.0f);
+
+    if (seriden_yazilabilir)
+    {
+      Serial.printf("\nJoystick Modu - DY=%f", r[0]);
     }
 
-    v=mappedValue1/100.0f;
+    v = mappedValue1 / 100.0f;
     ratio = 50.0f / 100.0f;
   }
-  //vericekme();
+  // vericekme();
 }
